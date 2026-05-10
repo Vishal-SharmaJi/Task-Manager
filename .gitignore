@@ -1,0 +1,12 @@
+node_modules/
+.env
+databse.txt
+database.txt
+.DS_Store
+dist/
+build/
+.gemini/
+.tools/
+*.7z
+*.zip
+server/scratch_*.js

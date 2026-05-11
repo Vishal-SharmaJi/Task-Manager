@@ -36,7 +36,7 @@ const Login = () => {
             </div>
           )}
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-sm text-center">
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 text-sm text-center">
               {error}
             </div>
           )}

@@ -172,20 +172,32 @@ exports.getProjectById = async (req, res) => {
 };
 
 exports.deleteProject = async (req, res) => {
+  const client = await db.pool.connect();
+
   try {
-    const result = await db.query(
+    await client.query('BEGIN');
+
+    await client.query('DELETE FROM tasks WHERE project_id = $1', [req.params.id]);
+    await client.query('DELETE FROM project_members WHERE project_id = $1', [req.params.id]);
+
+    const result = await client.query(
       'DELETE FROM projects WHERE id = $1 RETURNING id',
       [req.params.id]
     );
 
     if (!result.rows[0]) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Project not found' });
     }
 
+    await client.query('COMMIT');
     res.json({ message: 'Project removed' });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  } finally {
+    client.release();
   }
 };
 

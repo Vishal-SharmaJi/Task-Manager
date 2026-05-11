@@ -172,20 +172,43 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(400).json({ message: 'Invalid task status' });
     }
 
-    const result = await db.query(
-      `UPDATE tasks
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2
-       RETURNING id`,
-      [status, req.params.id]
+    const existing = await db.query(
+      'SELECT id, project_id, assigned_to FROM tasks WHERE id = $1',
+      [req.params.id]
     );
 
-    if (!result.rows[0]) {
+    if (!existing.rows[0]) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    const task = await db.query(`${taskSelect} WHERE t.id = $1`, [req.params.id]);
-    res.json(mapTaskRow(task.rows[0]));
+    const task = existing.rows[0];
+    const requesterId = String(req.user.id);
+    const assignedTo = task.assigned_to == null ? null : String(task.assigned_to);
+    const isAdmin = req.user.role === 'Admin';
+
+    const isCreator = await db.query(
+      'SELECT 1 FROM projects WHERE id = $1 AND created_by = $2',
+      [task.project_id, req.user.id]
+    );
+
+    const canUpdate =
+      isAdmin ||
+      (assignedTo != null && assignedTo === requesterId) ||
+      isCreator.rows.length > 0;
+
+    if (!canUpdate) {
+      return res.status(403).json({ message: 'Not authorized to update task status' });
+    }
+
+    await db.query(
+      `UPDATE tasks t
+       SET status = $1, updated_at = NOW()
+       WHERE t.id = $2`,
+      [status, req.params.id]
+    );
+
+    const updated = await db.query(`${taskSelect} WHERE t.id = $1`, [req.params.id]);
+    res.json(mapTaskRow(updated.rows[0]));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -237,6 +260,86 @@ exports.getDashboardStats = async (req, res) => {
     );
 
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.getRecentActivity = async (req, res) => {
+  try {
+    const params = [];
+    let where = '';
+
+    if (req.user.role !== 'Admin') {
+      params.push(req.user.id);
+      where = `
+        WHERE
+          t.assigned_to = $1
+          OR EXISTS (
+            SELECT 1
+            FROM projects p
+            WHERE p.id = t.project_id
+            AND (
+              p.created_by = $1
+              OR EXISTS (
+                SELECT 1
+                FROM project_members pm
+                WHERE pm.project_id = p.id AND pm.user_id = $1
+              )
+            )
+          )
+      `;
+    }
+
+    const result = await db.query(
+      `
+        ${taskSelect}
+        ${where}
+        ORDER BY COALESCE(t.updated_at, t.created_at) DESC
+        LIMIT 20
+      `,
+      params
+    );
+
+    const recentTasks = result.rows.map(mapTaskRow);
+
+    const now = new Date();
+
+    const exampleActivities = [
+      {
+        _id: 'example-1',
+        id: 'example-1',
+        title: 'Design dashboard UI',
+        status: 'In Progress',
+        updatedAt: new Date(now.getTime() - 1000 * 60 * 12).toISOString(),
+      },
+      {
+        _id: 'example-2',
+        id: 'example-2',
+        title: 'Fix auth edge case',
+        status: 'Todo',
+        updatedAt: new Date(now.getTime() - 1000 * 60 * 45).toISOString(),
+      },
+      {
+        _id: 'example-3',
+        id: 'example-3',
+        title: 'Write API integration tests',
+        status: 'Completed',
+        updatedAt: new Date(now.getTime() - 1000 * 60 * 140).toISOString(),
+      },
+      {
+        _id: 'example-4',
+        id: 'example-4',
+        title: 'Update project roadmap',
+        status: 'In Progress',
+        updatedAt: new Date(now.getTime() - 1000 * 60 * 210).toISOString(),
+      },
+    ];
+
+    const combined = [...recentTasks, ...exampleActivities];
+
+    res.json(combined.slice(0, 5));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

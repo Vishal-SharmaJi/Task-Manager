@@ -81,7 +81,7 @@ const Projects = () => {
       </div>
 
       {pageError && (
-        <div className="rounded-lg border border-rose-100 bg-rose-50 p-4 text-sm text-rose-600">
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-600">
           {pageError}
         </div>
       )}
@@ -99,7 +99,32 @@ const Projects = () => {
                 <div className="p-3 rounded-lg bg-primary-50 text-primary-600">
                   <Folder size={24} />
                 </div>
-                <ChevronRight className="text-slate-300 group-hover:text-accent-500 transition-colors" size={20} />
+                <div className="flex items-center gap-3">
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!window.confirm(`Delete project "${project.name}"? This will also delete its tasks.`)) return;
+                        (async () => {
+                          try {
+                            await api.delete(`/projects/${project._id}`);
+                            await fetchProjects();
+                          } catch (err) {
+                            console.error('Error deleting project:', err);
+                            setPageError(err.response?.data?.message || 'Unable to delete project.');
+                          }
+                        })();
+                      }}
+                      className="text-slate-300 hover:text-blue-600 transition-colors"
+                      title="Delete project"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                  <ChevronRight className="text-slate-300 group-hover:text-accent-500 transition-colors" size={20} />
+                </div>
               </div>
               <h3 className="text-xl font-bold text-slate-950 mb-2 group-hover:text-primary-700 transition-colors">{project.name}</h3>
               <p className="text-slate-500 text-sm mb-6 line-clamp-2">{project.description || 'No description provided.'}</p>
@@ -121,7 +146,7 @@ const Projects = () => {
           <div className="glass-card w-full max-w-md p-8 shadow-2xl">
             <h3 className="text-2xl font-bold text-slate-950 mb-6">Create New Project</h3>
             {createError && (
-              <div className="mb-4 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-600">
+              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-600">
                 {createError}
               </div>
             )}

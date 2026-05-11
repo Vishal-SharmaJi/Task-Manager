@@ -247,7 +247,7 @@ const ProjectDetails = () => {
                   type="button"
                   onClick={() => removeMember(member._id || member.id)}
                   disabled={removingMemberId === String(member._id || member.id)}
-                  className="ml-1 rounded-full p-0.5 text-primary-500 hover:bg-white hover:text-rose-600 disabled:opacity-50"
+                  className="ml-1 rounded-full p-0.5 text-primary-500 hover:bg-white hover:text-blue-600 disabled:opacity-50"
                   title="Remove member"
                 >
                   <X size={12} />
@@ -259,7 +259,7 @@ const ProjectDetails = () => {
       </div>
 
       {memberError && (
-        <div className="rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-600">
+        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-600">
           {memberError}
         </div>
       )}
@@ -291,7 +291,7 @@ const ProjectDetails = () => {
                         <button onClick={() => openEditTask(task)} className="text-slate-400 hover:text-primary-700 transition-colors" title="Edit task">
                           <Pencil size={14} />
                         </button>
-                        <button onClick={() => deleteTask(task._id)} className="text-slate-300 hover:text-rose-600 transition-colors" title="Delete task">
+                        <button onClick={() => deleteTask(task._id)} className="text-slate-300 hover:text-blue-600 transition-colors" title="Delete task">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -315,16 +315,43 @@ const ProjectDetails = () => {
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-primary-100 flex gap-2">
-                    {col.id !== 'Todo' && (
-                        <button onClick={() => updateStatus(task._id, col.id === 'Completed' ? 'In Progress' : 'Todo')} className="text-[10px] text-slate-600 hover:text-slate-900 px-2 py-1 rounded bg-slate-100">
-                            Move Back
-                        </button>
-                    )}
-                    {col.id !== 'Completed' && (
-                        <button onClick={() => updateStatus(task._id, col.id === 'Todo' ? 'In Progress' : 'Completed')} className="text-[10px] text-primary-700 hover:text-primary-800 px-2 py-1 rounded bg-primary-50">
-                            {col.id === 'Todo' ? 'Start' : 'Complete'}
-                        </button>
-                    )}
+                    {(() => {
+                      const token = localStorage.getItem('token');
+                      let currentUserId = null;
+
+                      try {
+                        if (token) {
+                          const payload = JSON.parse(atob(token.split('.')[1]));
+                          currentUserId = payload?.id ?? null;
+                        }
+                      } catch (e) {
+                        currentUserId = null;
+                      }
+
+                      const assignedId = task.assignedTo?.id || task.assignedTo?._id || null;
+                      const allow = isAdmin || (currentUserId && assignedId && String(assignedId) === String(currentUserId));
+
+                      return (
+                        <>
+                          {allow && col.id !== 'Todo' && (
+                            <button
+                              onClick={() => updateStatus(task._id, col.id === 'Completed' ? 'In Progress' : 'Todo')}
+                              className="text-[10px] text-slate-600 hover:text-slate-900 px-2 py-1 rounded bg-slate-100"
+                            >
+                              Move Back
+                            </button>
+                          )}
+                          {allow && col.id !== 'Completed' && (
+                            <button
+                              onClick={() => updateStatus(task._id, col.id === 'Todo' ? 'In Progress' : 'Completed')}
+                              className="text-[10px] text-primary-700 hover:text-primary-800 px-2 py-1 rounded bg-primary-50"
+                            >
+                              {col.id === 'Todo' ? 'Start' : 'Complete'}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </motion.div>
               ))}
@@ -334,11 +361,11 @@ const ProjectDetails = () => {
       </div>
 
       {showTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/30 backdrop-blur-sm">
-          <div className="glass-card w-full max-w-md p-8">
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-6 bg-slate-900/30 backdrop-blur-sm overflow-y-auto">
+          <div className="glass-card w-full max-w-md p-8 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-slate-950 mb-6">{editingTask ? 'Edit Task' : 'Add New Task'}</h3>
             {taskError && (
-              <div className="mb-4 rounded-lg border border-rose-100 bg-rose-50 p-3 text-sm text-rose-600">
+              <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-600">
                 {taskError}
               </div>
             )}

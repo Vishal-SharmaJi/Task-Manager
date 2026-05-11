@@ -4,7 +4,6 @@ const api = axios.create({
   baseURL: '/api',
 });
 
-// Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -18,7 +17,6 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {

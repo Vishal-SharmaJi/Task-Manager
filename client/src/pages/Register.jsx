@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -31,7 +30,7 @@ const Register = () => {
         </div>
         <div className="bg-white/95 border border-primary-100 rounded-lg p-6 shadow-xl shadow-primary-100/50">
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-sm text-center">
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 text-sm text-center">
               {error}
             </div>
           )}
@@ -99,4 +98,5 @@ const Register = () => {
     </div>
   );
 };
+
 export default Register;
